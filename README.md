@@ -1,8 +1,8 @@
-# NetMon 🚀
+# NetMon 
 
 A modern, pro-grade network monitor for Arch Linux built with **PySide6** and **Fluent Design**. NetMon provides real-time insights into your system's bandwidth, active connections, listening ports, and internet speed.
 
-## ✨ Features
+## Features
 
 -   **Modern Fluent UI:** A high-fidelity interface with dark mode, acrylic effects, and smooth animations using `QFluentWidgets`.
 -   **Live Dashboard:** Real-time stats cards and sparkline charts for instant network health checks.
@@ -12,7 +12,7 @@ A modern, pro-grade network monitor for Arch Linux built with **PySide6** and **
 -   **Speed Test:** Integrated speedtest.net client with circular progress gauges and a persistent history log.
 -   **Arch Optimized:** Native PKGBUILD and `.desktop` integration for seamless Arch Linux deployment.
 
-## 🛠 Technologies
+## Technologies
 
 -   **Language:** Python 3.14+
 -   **GUI Framework:** [PySide6](https://doc.qt.io/qtforpython-6/) (Official Qt for Python)
@@ -22,7 +22,7 @@ A modern, pro-grade network monitor for Arch Linux built with **PySide6** and **
 -   **Plotting:** [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph) (High-performance scientific graphics)
 -   **Packaging:** Setuptools (PEP 621 `pyproject.toml`)
 
-## 📦 Installation (Arch Linux)
+## Installation (Arch Linux)
 
 ### Manual Installation (Development)
 ```bash
@@ -34,7 +34,7 @@ source venv/bin/activate
 pip install -e .
 ```
 
-## 🚀 Usage
+## Usage
 
 Due to security restrictions in Linux, NetMon requires root privileges to resolve process names for network connections owned by other users.
 
@@ -51,13 +51,13 @@ xhost +local:root
 sudo ./venv/bin/netmon
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 -   `src/netmon/core/`: Backend logic, workers, and state management.
 -   `src/netmon/ui/`: Fluent Design views and custom widgets.
 -   `src/netmon/resources/`: Icons and assets.
 -   `PKGBUILD`: Arch Linux package build script.
 
-## 📄 License
+## License
 
 MIT License
