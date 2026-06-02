@@ -1,10 +1,14 @@
 from PySide6.QtCore import Qt
-from qfluentwidgets import FluentWindow, FluentIcon as FIF
+from PySide6.QtWidgets import QWidget
+from qfluentwidgets import FluentWindow, FluentIcon as FIF, NavigationItemPosition, InfoBar, InfoBarPosition
 from netmon.ui.dashboard.view import DashboardView
 from netmon.ui.speedtest.view import SpeedTestView
 from netmon.ui.bandwidth.view import BandwidthView
 from netmon.ui.connections.view import ConnectionsView
-from netmon.core.workers import BandwidthWorker, ConnectionsWorker
+from netmon.ui.network_details.view import NetworkDetailsView
+from netmon.ui.quota.view import QuotaView
+from netmon.ui.settings.dialog import SettingsDialog
+from netmon.core.workers import BandwidthWorker, ConnectionsWorker, NetworkInfoWorker, QuotaWorker
 from netmon.core.state_manager import state
 
 class MainWindow(FluentWindow):
@@ -23,25 +27,61 @@ class MainWindow(FluentWindow):
         self.bandwidth_view.setObjectName("bandwidthView")
         self.connections_view = ConnectionsView()
         self.connections_view.setObjectName("connectionsView")
+        self.network_details_view = NetworkDetailsView()
+        self.network_details_view.setObjectName("networkDetailsView")
+        self.quota_view = QuotaView()
+        self.quota_view.setObjectName("quotaView")
         
         # Add sub-interfaces
         self.addSubInterface(self.dashboard_view, FIF.HOME, "Dashboard")
         self.addSubInterface(self.speedtest_view, FIF.SPEED_HIGH, "Speed Test")
         self.addSubInterface(self.bandwidth_view, FIF.PIE_SINGLE, "Bandwidth")
         self.addSubInterface(self.connections_view, FIF.GLOBE, "Connections")
+        self.addSubInterface(self.network_details_view, FIF.WIFI, "Network Details")
+        self.addSubInterface(self.quota_view, FIF.CALORIES, "Quota")
+        
+        # Add settings button at BOTTOM of navigation:
+        self.navigationInterface.addItem(
+            routeKey="settings",
+            icon=FIF.SETTING,
+            text="Settings",
+            onClick=self.open_settings,
+            position=NavigationItemPosition.BOTTOM
+        )
         
         # Start workers (SpeedTestWorker is inside SpeedTestView)
         self.bw_worker = BandwidthWorker()
         self.conn_worker = ConnectionsWorker(interval=2)
+        self.network_worker = NetworkInfoWorker(interval=10)
+        self.quota_worker = QuotaWorker(interval=5)
         
         self.bw_worker.start()
         self.conn_worker.start()
+        self.network_worker.start()
+        self.quota_worker.start()
+        
+        # Connect warning signal:
+        state.quota_warning.connect(self.show_quota_warning)
         
         # Set initial view
         self.switchTo(self.dashboard_view)
     
+    def open_settings(self):
+        dlg = SettingsDialog(self)
+        dlg.exec()
+
+    def show_quota_warning(self, level: str):
+        messages = {
+            "medium": "⚠️ 80% of data quota used",
+            "high": "🔶 90% of data quota used",
+            "critical": "🚨 Data quota exceeded!"
+        }
+        InfoBar.warning(messages.get(level, level), self.window(), duration=5000)
+
     def closeEvent(self, event):
         self.bw_worker.stop()
         self.conn_worker.stop()
+        self.network_worker.stop()
+        self.quota_worker.stop()
         self.speedtest_view.speed_worker.cancel()
         super().closeEvent(event)

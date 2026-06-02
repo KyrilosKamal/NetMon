@@ -10,6 +10,10 @@ class NetMonState(QObject):
     listening_updated = Signal(list)
     speed_test_completed = Signal(dict)           # result dict
     privilege_changed = Signal(bool)              # True if root
+    
+    network_info_updated = Signal(dict)           # interface_name -> info dict
+    quota_updated = Signal(dict)
+    quota_warning = Signal(str)                   # "medium", "high", "critical"
 
     def __init__(self):
         super().__init__()
@@ -19,6 +23,8 @@ class NetMonState(QObject):
         self._listening = []
         self._last_speed = {}
         self._is_root = False
+        self._network_info = {}
+        self._quota = {}
 
     # ---- Properties ----
     @property
@@ -33,6 +39,10 @@ class NetMonState(QObject):
     def last_speed(self): return self._last_speed
     @property
     def is_root(self): return self._is_root
+    @property
+    def network_info(self): return self._network_info
+    @property
+    def quota(self): return self._quota
 
     # ---- Update methods (called from workers) ----
     def update_bandwidth(self, sent: float, recv: float):
@@ -55,6 +65,16 @@ class NetMonState(QObject):
     def update_privilege(self, is_root: bool):
         self._is_root = is_root
         self.privilege_changed.emit(is_root)
+
+    def update_network_info(self, info: dict):
+        self._network_info = info
+        self.network_info_updated.emit(info)
+
+    def update_quota(self, data: dict):
+        self._quota = data
+        self.quota_updated.emit(data)
+        for warning in data.get('warnings', []):
+            self.quota_warning.emit(warning)
 
 # Singleton instance used application-wide
 state = NetMonState()

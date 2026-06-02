@@ -6,7 +6,9 @@ No Qt/GUI dependencies – safe to call from any thread.
 import os
 import time
 import threading
-from typing import Dict, List, Optional
+import socket
+import struct
+from typing import Dict, List, Optional, Any
 
 import psutil
 import speedtest
@@ -130,6 +132,76 @@ def get_listening_ports() -> List[Dict]:
     """
     conns = get_connections()
     return [c for c in conns if c['status'] == 'LISTEN']
+
+
+# ------------------------------------------------------------
+# Network info and gateway
+# ------------------------------------------------------------
+
+
+def _parse_gateway() -> str:
+    """Parse default gateway from /proc/net/route (hex to IP)."""
+    try:
+        with open('/proc/net/route', 'r') as f:
+            for line in f.readlines()[1:]:  # Skip header
+                parts = line.strip().split()
+                if len(parts) >= 3 and parts[1] == '00000000':  # Default route
+                    gateway_int = int(parts[2], 16)
+                    return socket.inet_ntoa(struct.pack('<L', gateway_int))
+    except (FileNotFoundError, PermissionError, ValueError):
+        pass
+    return "Unknown"
+
+
+def _mask_to_cidr(mask: str) -> int:
+    """Convert netmask to CIDR prefix length."""
+    return sum(bin(int(x)).count('1') for x in mask.split('.'))
+
+
+def get_network_info() -> Dict[str, Dict[str, Any]]:
+    """Return network info for all interfaces including gateway."""
+
+    gateway = _parse_gateway()
+    result = {}
+
+    addrs = psutil.net_if_addrs()
+    stats = psutil.net_if_stats()
+
+    for iface, addr_list in addrs.items():
+        iface_info = {
+            'ip': None,
+            'subnet_cidr': None,
+            'mac': None,
+            'is_up': False,
+            'speed': 0,
+            'is_default': False
+        }
+
+        # Get stats
+        if iface in stats:
+            iface_info['is_up'] = stats[iface].isup
+            iface_info['speed'] = stats[iface].speed
+
+        for addr in addr_list:
+            if addr.family == socket.AF_INET:  # IPv4 only
+                iface_info['ip'] = addr.address
+                cidr = _mask_to_cidr(addr.netmask)
+                iface_info['subnet_cidr'] = f"{addr.address}/{cidr}"
+            elif addr.family == 17:  # AF_PACKET (MAC address)
+                iface_info['mac'] = addr.address
+
+        # Check if this interface has the gateway
+        if gateway != "Unknown" and iface_info.get('ip'):
+            # Simple check: interface IP in same subnet as gateway
+            # For now, mark first interface with IP as default
+            if not any(v.get('is_default') for v in result.values()):
+                iface_info['is_default'] = True
+                iface_info['gateway'] = gateway
+
+        if iface_info['ip']:  # Only add interfaces with IPs
+            result[iface] = iface_info
+
+    return result
 
 
 # ------------------------------------------------------------

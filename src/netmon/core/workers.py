@@ -7,8 +7,9 @@ import time
 import psutil
 import speedtest
 from PySide6.QtCore import QThread, Signal
-from netmon.core.backend import get_bandwidth, get_connections, get_listening_ports, run_speed_test, is_root
+from netmon.core.backend import get_bandwidth, get_connections, get_listening_ports, run_speed_test, is_root, get_network_info
 from netmon.core.state_manager import state
+from netmon.core.quota_manager import quota_manager
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class BandwidthWorker(QThread):
         self._running = False
 
     def run(self):
+        print(f"DEBUG: Starting {self.__class__.__name__}")
         self._running = True
         while self._running:
             try:
@@ -51,6 +53,7 @@ class ConnectionsWorker(QThread):
         self._running = False
 
     def run(self):
+        print(f"DEBUG: Starting {self.__class__.__name__}")
         self._running = True
         while self._running:
             try:
@@ -83,6 +86,7 @@ class SpeedTestWorker(QThread):
         self._is_cancelled = False
 
     def run(self):
+        print(f"DEBUG: Starting {self.__class__.__name__}")
         try:
             self.progress.emit("Finding best server...")
             # Check for cancellation before starting potentially long operation
@@ -114,3 +118,65 @@ class SpeedTestWorker(QThread):
         self._is_cancelled = True
         # Also request thread interruption for immediate response
         self.requestInterruption()
+
+
+class NetworkInfoWorker(QThread):
+    """Polls network interface info every 10 seconds."""
+    error_occurred = Signal(str)
+    
+    def __init__(self, interval=10):
+        super().__init__()
+        self.interval = interval
+        self._running = False
+    
+    def run(self):
+        print(f"DEBUG: Starting {self.__class__.__name__}")
+        self._running = True
+        while self._running:
+            try:
+                print("DEBUG: Fetching network info..."); info = get_network_info()
+                state.update_network_info(info)
+            except Exception as e:
+                logger.error(f"NetworkInfoWorker failed: {e}")
+                self.error_occurred.emit(str(e))
+            time.sleep(self.interval)
+    
+    def stop(self):
+        self._running = False
+        self.wait(2000)
+
+
+class QuotaWorker(QThread):
+    """Polls quota usage every 5 seconds."""
+    error_occurred = Signal(str)
+    
+    def __init__(self, interval=5):
+        super().__init__()
+        self.interval = interval
+        self._running = False
+        self._last_warning = None
+    
+    def run(self):
+        print(f"DEBUG: Starting {self.__class__.__name__}")
+        self._running = True
+        while self._running:
+            try:
+                print("DEBUG: Fetching quota..."); usage = quota_manager.get_usage()
+                state.update_quota(usage)
+                
+                # Emit warning only once per level
+                warnings = usage.get('warnings', [])
+                if warnings:
+                    current_warning = warnings[0]
+                    if current_warning != self._last_warning:
+                        state.quota_warning.emit(current_warning)
+                        self._last_warning = current_warning
+                else:
+                    self._last_warning = None
+            except Exception as e:
+                logger.error(f"QuotaWorker failed: {e}")
+            time.sleep(self.interval)
+    
+    def stop(self):
+        self._running = False
+        self.wait(2000)

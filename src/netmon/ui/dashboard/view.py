@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLa
 from PySide6.QtCore import Qt
 from qfluentwidgets import CardWidget, FluentIcon as FIF
 from netmon.core.state_manager import state
+from netmon.ui.widgets.quota_card import QuotaCard
 
 class DashboardView(QWidget):
     def __init__(self, parent=None):
@@ -14,6 +15,10 @@ class DashboardView(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
+        
+        # Quota card at top
+        self.quota_card = QuotaCard(compact=True)
+        layout.addWidget(self.quota_card)
         
         # Title
         title = QLabel("📊 Network Dashboard")
@@ -70,6 +75,7 @@ class DashboardView(QWidget):
         state.listening_updated.connect(self._on_listening)
         state.privilege_changed.connect(self._on_privilege)
         state.speed_test_completed.connect(self._on_speed_test)
+        state.quota_updated.connect(self.quota_card.update_usage)
     
     def _format_bytes(self, bps):
         if bps >= 1_000_000:
