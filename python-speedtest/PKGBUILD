@@ -1,0 +1,37 @@
+# Maintainer: Your Name <you@example.com>
+pkgname=python-speedtest
+pkgver=2.1.3
+pkgrel=1
+pkgdesc="Easy to use interface to speedtest.net (Python module) - Ookla's speedtest-cli library only"
+arch=('any')
+url="https://github.com/libspeedtest/speedtest-cli"
+license=('Apache')
+depends=('python')
+makedepends=()
+checkdepends=()
+optdepends=()
+provides=('speedtest')  # Provides the speedtest module
+conflicts=('speedtest-cli')  # Conflicts because we install the same module
+source=("$pkgname-$pkgver.tar.gz::https://github.com/libspeedtest/speedtest-cli/archive/refs/tags/v$pkgver.tar.gz")
+# Replace with actual checksum before uploading to AUR
+sha256sums=('SKIP')
+
+# Note: This package installs ONLY the speedtest Python module, not the CLI command.
+# The speedtest-cli Arch package provides both the module and the CLI command.
+# This package is intended for applications that only need the module (like netmon)
+# and want to avoid installing the CLI command.
+
+build() {
+  # No build step needed for pure Python module
+  :  # noop
+}
+
+package() {
+  # Install the speedtest module
+  install -Dm644 "speedtest-cli-$pkgver/speedtest.py" \
+    "$pkgdir/usr/lib/python$(python -c 'import sys;print(sys.version_info[0])').$(python -c 'import sys;print(sys.version_info[1])')/site-packages/speedtest.py"
+
+  # Install license
+  install -Dm644 "speedtest-cli-$pgver/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
