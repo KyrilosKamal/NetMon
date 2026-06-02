@@ -78,9 +78,9 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
-### Method 1: From AUR (Recommended) ⭐
+### Method 1: From AUR (Recommended) 
 
 ```bash
 # Using yay
@@ -234,7 +234,7 @@ Include:
 
 ---
 ### License
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ---
 ### Acknowledgments
