@@ -67,8 +67,14 @@ class NetMonState(QObject):
         self.privilege_changed.emit(is_root)
 
     def update_network_info(self, info: dict):
+        # DEBUG: Print what we received
+        print(f"DEBUG [state]: Received {len(info)} interfaces", flush=True)
+        for iface, data in info.items():
+            print(f"DEBUG [state]: {iface} -> gateway={data.get('gateway')}, default={data.get('is_default')}", flush=True)
+        
         self._network_info = info
         self.network_info_updated.emit(info)
+        print("DEBUG [state]: Emitted signal", flush=True)
 
     def update_quota(self, data: dict):
         self._quota = data

@@ -8,7 +8,7 @@ import time
 import threading
 import socket
 import struct
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 import psutil
 import speedtest
@@ -139,18 +139,42 @@ def get_listening_ports() -> List[Dict]:
 # ------------------------------------------------------------
 
 
-def _parse_gateway() -> str:
-    """Parse default gateway from /proc/net/route (hex to IP)."""
+def _parse_gateway() -> Tuple[Optional[str], Optional[str]]:
+    """
+    Parse default gateway from /proc/net/route.
+    Returns: (gateway_ip, interface_name) or (None, None)
+    
+    /proc/net/route format:
+    Iface   Destination Gateway     Flags RefCnt Use Metric Mask
+    eno1    00000000    0A1F080A    0003  0      0   100    00000000
+    """
     try:
         with open('/proc/net/route', 'r') as f:
             for line in f.readlines()[1:]:  # Skip header
                 parts = line.strip().split()
-                if len(parts) >= 3 and parts[1] == '00000000':  # Default route
-                    gateway_int = int(parts[2], 16)
-                    return socket.inet_ntoa(struct.pack('<L', gateway_int))
-    except (FileNotFoundError, PermissionError, ValueError):
-        pass
-    return "Unknown"
+                if len(parts) < 8:
+                    continue
+                
+                interface = parts[0]
+                destination = parts[1]  # Hex
+                gateway_hex = parts[2]  # Hex
+                
+                # Default route has destination 00000000
+                if destination == '00000000' and gateway_hex != '00000000':
+                    # Convert gateway from little-endian hex to IP
+                    gateway_int = int(gateway_hex, 16)
+                    gateway_ip = socket.inet_ntoa(
+                        struct.pack('<L', gateway_int)
+                    )
+                    return gateway_ip, interface
+    except FileNotFoundError:
+        print("Warning: /proc/net/route not found")
+    except PermissionError:
+        print("Warning: Permission denied reading /proc/net/route")
+    except Exception as e:
+        print(f"Error parsing gateway: {e}")
+    
+    return None, None
 
 
 def _mask_to_cidr(mask: str) -> int:
@@ -159,48 +183,61 @@ def _mask_to_cidr(mask: str) -> int:
 
 
 def get_network_info() -> Dict[str, Dict[str, Any]]:
-    """Return network info for all interfaces including gateway."""
-
-    gateway = _parse_gateway()
+    """Return network info for all interfaces with correct gateway assignment."""
+    
+    # Step 1: Find which interface has the default gateway
+    gateway_ip, gateway_iface = _parse_gateway()
+    
+    # Debug output
+    print(f"DEBUG: Default gateway {gateway_ip} is on interface '{gateway_iface}'")
+    
     result = {}
-
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
-
+    
+    # Step 2: Process EACH interface
     for iface, addr_list in addrs.items():
         iface_info = {
             'ip': None,
             'subnet_cidr': None,
+            'gateway': None,  # Start as None for ALL interfaces
             'mac': None,
             'is_up': False,
             'speed': 0,
             'is_default': False
         }
-
+        
         # Get stats
         if iface in stats:
             iface_info['is_up'] = stats[iface].isup
             iface_info['speed'] = stats[iface].speed
-
+        
+        # Get addresses
         for addr in addr_list:
-            if addr.family == socket.AF_INET:  # IPv4 only
+            if addr.family == socket.AF_INET:
                 iface_info['ip'] = addr.address
                 cidr = _mask_to_cidr(addr.netmask)
                 iface_info['subnet_cidr'] = f"{addr.address}/{cidr}"
-            elif addr.family == 17:  # AF_PACKET (MAC address)
+            elif addr.family == 17:  # AF_PACKET
                 iface_info['mac'] = addr.address
-
-        # Check if this interface has the gateway
-        if gateway != "Unknown" and iface_info.get('ip'):
-            # Simple check: interface IP in same subnet as gateway
-            # For now, mark first interface with IP as default
-            if not any(v.get('is_default') for v in result.values()):
-                iface_info['is_default'] = True
-                iface_info['gateway'] = gateway
-
-        if iface_info['ip']:  # Only add interfaces with IPs
+        
+        # Step 3: CRITICAL - Only set gateway on THE CORRECT interface
+        if gateway_ip and iface == gateway_iface:
+            iface_info['gateway'] = gateway_ip
+            iface_info['is_default'] = True
+            print(f"DEBUG: Applied gateway {gateway_ip} to interface '{iface}'")
+        else:
+            print(f"DEBUG: Interface '{iface}' - no gateway (gateway_iface={gateway_iface})")
+        
+        # Only add if has IP
+        if iface_info['ip']:
             result[iface] = iface_info
-
+            
+    # DEBUG: Print final result
+    print(f"DEBUG [backend]: Returning {len(result)} interfaces", flush=True)
+    for iface, info in result.items():
+        print(f"DEBUG [backend]: {iface} -> gateway={info.get('gateway')}, default={info.get('is_default')}", flush=True)
+    
     return result
 
 

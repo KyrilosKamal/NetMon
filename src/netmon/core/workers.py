@@ -130,12 +130,20 @@ class NetworkInfoWorker(QThread):
         self._running = False
     
     def run(self):
-        print(f"DEBUG: Starting {self.__class__.__name__}")
+        print(f"DEBUG: Starting {self.__class__.__name__}", flush=True)
         self._running = True
         while self._running:
             try:
-                print("DEBUG: Fetching network info..."); info = get_network_info()
+                print("DEBUG: Fetching network info...", flush=True)
+                info = get_network_info()
+                
+                # DEBUG: Print what we got
+                print(f"DEBUG [worker]: Got {len(info)} interfaces", flush=True)
+                for iface, data in info.items():
+                    print(f"DEBUG [worker]: {iface} -> gateway={data.get('gateway')}, default={data.get('is_default')}", flush=True)
+                
                 state.update_network_info(info)
+                print("DEBUG [worker]: Sent to state_manager", flush=True)
             except Exception as e:
                 logger.error(f"NetworkInfoWorker failed: {e}")
                 self.error_occurred.emit(str(e))
