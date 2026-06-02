@@ -118,7 +118,7 @@ cython_debug
 
 # Arch Linux package files
 pkg/
-src/
+src/netmon.egg-info/
 *.tar.gz
 *.tar.zst
 *.pkg.tar.zst
