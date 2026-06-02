@@ -5,58 +5,57 @@ A modern, pro-grade network monitor for Arch Linux built with **PySide6** and **
 ## ✨ Features
 
 -   **Modern Fluent UI:** A high-fidelity interface with dark mode, acrylic effects, and smooth animations using `QFluentWidgets`.
--   **Live Dashboard:** Real-time stats cards and sparkline charts for instant network health checks.
--   **Bandwidth Monitoring:** Detailed area charts showing live upload/download traffic.
+-   **Live Dashboard:** Real-time stats cards for instant network health checks.
+-   **Bandwidth Monitoring:** Detailed charts showing live upload/download traffic.
 -   **Process-Level Connections:** View every active connection with local/remote IPs, PIDs, and associated process names.
 -   **Security Audit:** Quickly identify open listening ports and potentially sensitive services.
--   **Speed Test:** Integrated speedtest.net client with circular progress gauges and a persistent history log.
+-   **Speed Test:** Integrated speedtest.net client with circular progress gauges.
 -   **Arch Optimized:** Native PKGBUILD and `.desktop` integration for seamless Arch Linux deployment.
 
 ## 🛠 Technologies
 
--   **Language:** Python 3.14+
--   **GUI Framework:** [PySide6](https://doc.qt.io/qtforpython-6/) (Official Qt for Python)
--   **UI Design:** [QFluentWidgets](https://github.com/zhiyiYo/PySide6-Fluent-Widgets) (Fluent Design System)
--   **Data Acquisition:** [psutil](https://github.com/giampaolo/psutil) (Cross-platform system/process utilities)
+-   **Language:** Python 3.12+
+-   **GUI Framework:** [PySide6](https://doc.qt.io/qtforpython-6/)
+-   **UI Design:** [QFluentWidgets](https://github.com/zhiyiYo/PySide6-Fluent-Widgets)
+-   **Data Acquisition:** [psutil](https://github.com/giampaolo/psutil)
 -   **Networking:** [speedtest-cli](https://github.com/sivel/speedtest-cli)
--   **Plotting:** [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph) (High-performance scientific graphics)
--   **Packaging:** Setuptools (PEP 621 `pyproject.toml`)
+-   **Plotting:** [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
 
-## 📦 Installation (Arch Linux)
+## 📦 Installation & Setup
 
-### Manual Installation (Development)
-```bash
-git clone https://github.com/YOUR_USERNAME/netmon.git
-cd netmon
-python -m venv venv
-# For fish users: source venv/bin/activate.fish
-source venv/bin/activate
-pip install -e .
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/netmon.git
+    cd netmon
+    ```
+
+2.  **Create and activate a virtual environment:**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install .
+    ```
 
 ## 🚀 Usage
 
 Due to security restrictions in Linux, NetMon requires root privileges to resolve process names for network connections owned by other users.
 
-### Standard Run
+### Run NetMon
+After installing in your virtual environment, run:
 ```bash
-netmon
+python -m netmon
 ```
 
-### Root Run (Full Visibility)
+### Run with Root Privileges (Full Visibility)
+If you need to see processes owned by other users:
 ```bash
-# Allow root to access the display
-xhost +local:root
-# Run with sudo using the absolute path
-sudo ./venv/bin/netmon
+sudo ./venv/bin/python -m netmon
 ```
-
-## 📂 Project Structure
-
--   `src/netmon/core/`: Backend logic, workers, and state management.
--   `src/netmon/ui/`: Fluent Design views and custom widgets.
--   `src/netmon/resources/`: Icons and assets.
--   `PKGBUILD`: Arch Linux package build script.
+*(Note: Ensure your virtual environment is created before running this command).*
 
 ## 📄 License
 
