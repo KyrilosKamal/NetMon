@@ -7,12 +7,12 @@ arch=('x86_64' 'aarch64' 'i686')
 url="https://github.com/YOUR_USERNAME/netmon"
 license=('MIT')
 depends=(
-    'python>=3.12'
-    'python-psutil'
+    'python'
     'python-pyside6'
+    'python-psutil'
     'python-speedtest-cli'
     'python-pyqtgraph'
-    'python-pyside6-fluent-widgets-git'
+    'python-pyside6-fluent-widgets'
     'qt6-wayland'
     'hicolor-icon-theme'
 )

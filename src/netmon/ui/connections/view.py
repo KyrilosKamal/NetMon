@@ -1,87 +1,77 @@
-"""
-Modern Connections View with Search and Filter.
-"""
-from PySide6.QtCore import Qt, Slot
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem
-from qfluentwidgets import (
-    TitleLabel, SearchLineEdit, ComboBox, TableWidget, 
-    FluentIcon as FIF, RoundMenu, Action
-)
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
+from PySide6.QtCore import Qt
+from qfluentwidgets import CardWidget
 from netmon.core.state_manager import state
 
 class ConnectionsView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("connectionsView")
-        self.show_listening = False
-        self._build_ui()
-        state.connections_updated.connect(self.update_data)
-
-    def _build_ui(self):
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setSpacing(16)
-        self.main_layout.setContentsMargins(32, 32, 32, 32)
-
-        # Header
-        self.main_layout.addWidget(TitleLabel("Network Connections", self))
-
-        # Filter Bar
-        self.filter_bar = QHBoxLayout()
-        self.search_input = SearchLineEdit(self)
-        self.search_input.setPlaceholderText("Search process, IP, or status...")
-        self.search_input.textChanged.connect(self._on_search)
+        self.setup_ui()
+        self.connect_signals()
+    
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         
-        self.mode_combo = ComboBox(self)
-        self.mode_combo.addItems(["All Connections", "Listening Ports"])
-        self.mode_combo.currentIndexChanged.connect(self._mode_changed)
+        # Title
+        title = QLabel("🌐 Network Connections")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white;")
+        layout.addWidget(title)
         
-        self.filter_bar.addWidget(self.search_input, 1)
-        self.filter_bar.addWidget(self.mode_combo)
-        self.main_layout.addLayout(self.filter_bar)
-
+        # Stats row
+        stats_layout = QHBoxLayout()
+        self.connections_count_label = QLabel("Active Connections: 0")
+        self.connections_count_label.setStyleSheet("font-size: 14px; color: #4ECDC4;")
+        stats_layout.addWidget(self.connections_count_label)
+        
+        self.ports_count_label = QLabel("Listening Ports: 0")
+        self.ports_count_label.setStyleSheet("font-size: 14px; color: #95E1D3;")
+        stats_layout.addWidget(self.ports_count_label)
+        stats_layout.addStretch()
+        layout.addLayout(stats_layout)
+        
         # Table
-        self.table = TableWidget(self)
+        self.table = QTableWidget()
         self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels([
-            "Local Address", "Remote Address", "Status", "PID", "Process"
-        ])
-        self.table.verticalHeader().hide()
-        self.table.setBorderRadius(8)
+        self.table.setHorizontalHeaderLabels(["Local", "Remote", "Status", "PID", "Process"])
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setAlternatingRowColors(True)
-        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background: #1a1a1a;
+                color: white;
+                border: 1px solid #333333;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QHeaderView::section {
+                background: #2a2a2a;
+                color: white;
+                padding: 8px;
+                border: 1px solid #333333;
+            }
+        """)
+        layout.addWidget(self.table)
+    
+    def connect_signals(self):
+        state.connections_updated.connect(self._on_connections)
+        state.listening_updated.connect(self._on_listening)
+    
+    def _on_connections(self, data: list):
+        """Update connections table."""
+        self.connections_count_label.setText(f"Active Connections: {len(data)}")
         
-        self.main_layout.addWidget(self.table)
-
-    @Slot(int)
-    def _mode_changed(self, idx):
-        self.show_listening = (idx == 1)
-        data = state.listening if self.show_listening else state.connections
-        self._populate_table(data)
-
-    def _on_search(self, text):
-        # Simple client-side filtering by re-populating or hiding rows
-        data = state.listening if self.show_listening else state.connections
-        filtered = [
-            c for c in data 
-            if text.lower() in str(c.values()).lower()
-        ]
-        self._populate_table(filtered)
-
-    @Slot(list)
-    def update_data(self, conns):
-        if not self.search_input.text():
-            data = state.listening if self.show_listening else conns
-            self._populate_table(data)
-
-    def _populate_table(self, data):
         self.table.setRowCount(len(data))
-        for i, c in enumerate(data):
-            self.table.setItem(i, 0, QTableWidgetItem(c.get('local', '')))
-            self.table.setItem(i, 1, QTableWidgetItem(c.get('remote', '')))
-            
-            # Status badge styling could be added here
-            status = c.get('status', '')
-            self.table.setItem(i, 2, QTableWidgetItem(status))
-            
-            self.table.setItem(i, 3, QTableWidgetItem(str(c.get('pid', ''))))
-            self.table.setItem(i, 4, QTableWidgetItem(c.get('process', '')))
+        for i, conn in enumerate(data):
+            # USE CORRECT KEYS: local, remote, status, pid, process
+            self.table.setItem(i, 0, QTableWidgetItem(str(conn.get('local', ''))))
+            self.table.setItem(i, 1, QTableWidgetItem(str(conn.get('remote', ''))))
+            self.table.setItem(i, 2, QTableWidgetItem(str(conn.get('status', ''))))
+            self.table.setItem(i, 3, QTableWidgetItem(str(conn.get('pid', 0))))
+            self.table.setItem(i, 4, QTableWidgetItem(str(conn.get('process', ''))))
+    
+    def _on_listening(self, data: list):
+        """Update listening ports count."""
+        self.ports_count_label.setText(f"Listening Ports: {len(data)}")

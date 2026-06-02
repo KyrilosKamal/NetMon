@@ -1,146 +1,132 @@
-"""
-Modern Speed Test View with Circular Progress and Results Cards.
-"""
-import os
-import json
-from datetime import datetime
-from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTableWidgetItem
-from qfluentwidgets import (
-    TitleLabel, SubtitleLabel, ProgressRing, PrimaryPushButton, 
-    CardWidget, FluentIcon as FIF, TableWidget
-)
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PySide6.QtCore import Qt
+from qfluentwidgets import CardWidget, ProgressRing, FluentIcon as FIF
 from netmon.core.state_manager import state
-
-HISTORY_DIR = os.path.expanduser("~/.local/share/netmon")
-HISTORY_FILE = os.path.join(HISTORY_DIR, "speed_history.json")
+from netmon.core.workers import SpeedTestWorker
 
 class SpeedTestView(QWidget):
-    start_test_requested = Signal()
-
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("speedTestView")
-        self.history = []
-        self._load_history()
-        self._build_ui()
-
-    def _build_ui(self):
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setSpacing(32)
-        self.main_layout.setContentsMargins(32, 32, 32, 32)
-
-        # Header
-        self.main_layout.addWidget(TitleLabel("Speed Test", self))
-
-        # Test Area (Circular Progress + Controls)
-        self.test_area = QHBoxLayout()
+        self.setup_ui()
+        self.setup_worker()
+        self.connect_signals()
+    
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         
-        # Left: Progress Ring
-        self.progress_container = QVBoxLayout()
-        self.progress_ring = ProgressRing(self)
-        self.progress_ring.setFixedSize(200, 200)
-        self.progress_ring.setStrokeWidth(12)
+        # Title
+        title = QLabel("🚀 Speed Test")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white;")
+        layout.addWidget(title)
+        
+        # Progress ring (hidden initially)
+        self.progress_ring = ProgressRing()
+        self.progress_ring.setFixedSize(120, 120)
+        self.progress_ring.setStrokeWidth(8)
         self.progress_ring.setValue(0)
-        self.progress_ring.setTextVisible(True)
+        self.progress_ring.setVisible(False)
+        layout.addWidget(self.progress_ring, alignment=Qt.AlignCenter)
         
-        self.status_label = SubtitleLabel("Ready", self)
-        self.status_label.setAlignment(Qt.AlignCenter)
+        # Progress label
+        self.progress_label = QLabel("")
+        self.progress_label.setStyleSheet("font-size: 14px; color: #AAAAAA;")
+        self.progress_label.setAlignment(Qt.AlignCenter)
+        self.progress_label.setVisible(False)
+        layout.addWidget(self.progress_label)
         
-        self.progress_container.addWidget(self.progress_ring, 0, Qt.AlignCenter)
-        self.progress_container.addWidget(self.status_label)
+        # Start button
+        self.start_button = QPushButton("Run Speed Test")
+        self.start_button.setFixedSize(200, 50)
+        self.start_button.setStyleSheet("""
+            QPushButton {
+                background: #00D9FF;
+                color: white;
+                border: none;
+                border-radius: 25px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #00B8E6;
+            }
+            QPushButton:disabled {
+                background: #555555;
+            }
+        """)
+        self.start_button.clicked.connect(self.start_test)
+        layout.addWidget(self.start_button, alignment=Qt.AlignCenter)
         
-        self.test_area.addLayout(self.progress_container)
+        # Results card
+        self.results_card = CardWidget()
+        self.results_card.setMinimumHeight(150)
+        results_layout = QVBoxLayout(self.results_card)
+        results_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Right: Controls and Latest Result
-        self.controls_layout = QVBoxLayout()
-        self.start_btn = PrimaryPushButton(FIF.PLAY, "Start Speed Test", self)
-        self.start_btn.setFixedSize(200, 50)
-        self.start_btn.clicked.connect(self.start_test)
+        self.results_label = QLabel("Click 'Run Speed Test' to begin...")
+        self.results_label.setStyleSheet("font-size: 14px; color: #AAAAAA;")
+        results_layout.addWidget(self.results_label)
         
-        self.controls_layout.addWidget(self.start_btn)
-        self.controls_layout.addStretch()
-        
-        self.test_area.addLayout(self.controls_layout)
-        self.test_area.addStretch()
-        
-        self.main_layout.addLayout(self.test_area)
-
-        # History Table
-        self.main_layout.addWidget(SubtitleLabel("Test History", self))
-        self.history_table = TableWidget(self)
-        self.history_table.setColumnCount(5)
-        self.history_table.setHorizontalHeaderLabels([
-            "Timestamp", "Download (Mbps)", "Upload (Mbps)", "Ping (ms)", "ISP"
-        ])
-        self.history_table.verticalHeader().hide()
-        self.history_table.setBorderRadius(8)
-        self.history_table.setBorderVisible(True)
-        
-        self.main_layout.addWidget(self.history_table)
-        self._update_history_table()
-
+        layout.addWidget(self.results_card)
+        layout.addStretch()
+    
+    def setup_worker(self):
+        """Initialize SpeedTestWorker."""
+        self.speed_worker = SpeedTestWorker()
+        self.speed_worker.progress.connect(self.on_progress)
+        self.speed_worker.finished.connect(self.on_finished)
+    
+    def connect_signals(self):
+        """Connect to state_manager for historical results."""
+        state.speed_test_completed.connect(self.on_speed_test_completed)
+    
     def start_test(self):
-        self.start_btn.setEnabled(False)
-        self.progress_ring.setValue(0)
-        self.progress_ring.setRange(0, 0)  # Indefinite while initializing
-        self.status_label.setText("Initializing...")
-        self.start_test_requested.emit()
-
-    @Slot(str)
-    def set_progress_message(self, msg):
-        self.status_label.setText(msg)
-
-    @Slot(dict)
-    def on_speed_test_finished(self, result):
-        self.start_btn.setEnabled(True)
-        self.progress_ring.setRange(0, 100)
-        self.progress_ring.setValue(100)
+        """Start speed test."""
+        self.start_button.setEnabled(False)
+        self.progress_ring.setVisible(True)
+        self.progress_label.setVisible(True)
+        self.progress_label.setText("Initializing...")
+        self.results_label.setText("Testing...")
+        
+        # Animate progress ring
+        self.progress_ring.setValue(30)
+        self.speed_worker.start()
+    
+    def on_progress(self, message: str):
+        """Update progress display."""
+        self.progress_label.setText(message)
+        self.progress_ring.setValue(60)
+    
+    def on_finished(self, result: dict):
+        """Handle test completion."""
+        self.progress_ring.setVisible(False)
+        self.progress_label.setVisible(False)
+        self.start_button.setEnabled(True)
+        
+        if result.get('status') == 'cancelled':
+            self.results_label.setText("Test cancelled")
+            return
         
         if result.get('status') == 'error':
-            self.status_label.setText(f"Error: {result.get('message')}")
+            self.results_label.setText(f"Error: {result.get('message', 'Unknown error')}")
             return
-
-        if result.get('status') == 'cancelled':
-            self.status_label.setText("Cancelled")
-            return
-
-        self.status_label.setText("Complete")
-        state.update_speed_test(result)
         
-        # Save to history
-        entry = {
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'download': result['download_mbps'],
-            'upload': result['upload_mbps'],
-            'ping': result['ping_ms'],
-            'isp': result.get('isp', 'Unknown')
-        }
-        self.history.insert(0, entry)
-        self._save_history()
-        self._update_history_table()
-
-    def _update_history_table(self):
-        self.history_table.setRowCount(len(self.history))
-        for i, h in enumerate(self.history):
-            self.history_table.setItem(i, 0, QTableWidgetItem(h['timestamp']))
-            self.history_table.setItem(i, 1, QTableWidgetItem(str(h['download'])))
-            self.history_table.setItem(i, 2, QTableWidgetItem(str(h['upload'])))
-            self.history_table.setItem(i, 3, QTableWidgetItem(str(h['ping'])))
-            self.history_table.setItem(i, 4, QTableWidgetItem(h['isp']))
-
-    def _load_history(self):
-        try:
-            if os.path.exists(HISTORY_FILE):
-                with open(HISTORY_FILE) as f:
-                    self.history = json.load(f)
-        except Exception:
-            self.history = []
-
-    def _save_history(self):
-        try:
-            os.makedirs(HISTORY_DIR, exist_ok=True)
-            with open(HISTORY_FILE, 'w') as f:
-                json.dump(self.history[:50], f, indent=2)
-        except Exception:
-            pass
+        # Display results
+        dl = result.get('download_mbps', 0)
+        ul = result.get('upload_mbps', 0)
+        ping = result.get('ping_ms', 0)
+        isp = result.get('isp', 'Unknown')
+        
+        self.results_label.setText(
+            f"⬇ Download: {dl:.2f} Mbps\n"
+            f"⬆ Upload: {ul:.2f} Mbps\n"
+            f"📡 Ping: {ping:.1f} ms\n"
+            f"🌐 ISP: {isp}"
+        )
+        self.results_label.setStyleSheet("font-size: 16px; color: white; line-height: 1.6;")
+    
+    def on_speed_test_completed(self, result: dict):
+        """Handle state_manager signal (for historical data)."""
+        # Already handled by worker signal
+        pass

@@ -1,104 +1,99 @@
-"""
-Modern Dashboard with StatCards and MiniCharts.
-"""
-from PySide6.QtCore import Qt, Slot
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
-from qfluentwidgets import FluentIcon as FIF, TitleLabel, BodyLabel
-
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout
+from PySide6.QtCore import Qt
+from qfluentwidgets import CardWidget, FluentIcon as FIF
 from netmon.core.state_manager import state
-from netmon.ui.widgets.stat_card import StatCard
-from netmon.ui.widgets.modern_chart import ModernChart
 
 class DashboardView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("dashboardView")
-        self._build_ui()
+        self.setup_ui()
+        self.connect_signals()
+    
+    def setup_ui(self):
+        # Create layout with proper margins
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         
-        # Connect to state
-        state.bandwidth_updated.connect(self.on_bandwidth)
-        state.connections_updated.connect(self.on_connections)
-        state.listening_updated.connect(self.on_listening)
-        state.speed_test_completed.connect(self.on_speed)
-
-    def _build_ui(self):
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setSpacing(24)
-        self.main_layout.setContentsMargins(32, 32, 32, 32)
+        # Title
+        title = QLabel("📊 Network Dashboard")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white;")
+        layout.addWidget(title)
         
-        # Header
-        self.title = TitleLabel("Network Dashboard", self)
-        self.main_layout.addWidget(self.title)
+        # 2x2 Grid for stat cards
+        grid = QGridLayout()
+        grid.setSpacing(16)
         
-        # Stat Cards Row
-        self.stats_layout = QHBoxLayout()
-        self.stats_layout.setSpacing(16)
+        # Create 4 cards
+        self.download_card = self.create_stat_card("⬇ Download", "0 B/s", "#00D9FF")
+        self.upload_card = self.create_stat_card("⬆ Upload", "0 B/s", "#FF6B6B")
+        self.connections_card = self.create_stat_card("🔗 Active Connections", "0", "#4ECDC4")
+        self.ports_card = self.create_stat_card(" Listening Ports", "0", "#95E1D3")
         
-        self.dl_card = StatCard("Download", FIF.DOWNLOAD, "Mbps", self)
-        self.ul_card = StatCard("Upload", FIF.UP, "Mbps", self)
-        self.ping_card = StatCard("Ping", FIF.SEND, "ms", self)
+        grid.addWidget(self.download_card, 0, 0)
+        grid.addWidget(self.upload_card, 0, 1)
+        grid.addWidget(self.connections_card, 1, 0)
+        grid.addWidget(self.ports_card, 1, 1)
         
-        self.stats_layout.addWidget(self.dl_card)
-        self.stats_layout.addWidget(self.ul_card)
-        self.stats_layout.addWidget(self.ping_card)
-        self.stats_layout.addStretch()
+        layout.addLayout(grid)
         
-        self.main_layout.addLayout(self.stats_layout)
+        # Privilege banner
+        self.privilege_label = QLabel("")
+        self.privilege_label.setStyleSheet("color: #FFA500; font-size: 12px;")
+        layout.addWidget(self.privilege_label)
         
-        # Charts Grid
-        self.charts_layout = QGridLayout()
-        self.charts_layout.setSpacing(20)
+        layout.addStretch()
+    
+    def create_stat_card(self, title, value, color):
+        card = CardWidget()
+        card.setMinimumSize(280, 140)
         
-        self.sent_chart = ModernChart("Sent Bandwidth", color="#00d9ff", parent=self)
-        self.recv_chart = ModernChart("Received Bandwidth", color="#ff00ff", parent=self)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(8)
         
-        self.charts_layout.addWidget(self.sent_chart, 0, 0)
-        self.charts_layout.addWidget(self.recv_chart, 0, 1)
+        title_label = QLabel(title)
+        title_label.setStyleSheet(f"font-size: 13px; color: {color}; font-weight: 500;")
+        card_layout.addWidget(title_label)
         
-        self.main_layout.addLayout(self.charts_layout)
+        value_label = QLabel(value)
+        value_label.setStyleSheet("font-size: 32px; font-weight: bold; color: white;")
+        card_layout.addWidget(value_label)
         
-        # Summary Row
-        self.summary_layout = QHBoxLayout()
-        self.conn_label = BodyLabel("Active Connections: 0", self)
-        self.listen_label = BodyLabel("Listening Ports: 0", self)
-        self.alert_label = BodyLabel("", self)
-        self.alert_label.setStyleSheet("color: #ff4d4d; font-weight: bold;")
-        
-        self.summary_layout.addWidget(self.conn_label)
-        self.summary_layout.addSpacing(20)
-        self.summary_layout.addWidget(self.listen_label)
-        self.summary_layout.addStretch()
-        self.summary_layout.addWidget(self.alert_label)
-        
-        self.main_layout.addLayout(self.summary_layout)
-
-    @Slot(float, float)
-    def on_bandwidth(self, sent, recv):
-        # We need a small history for the chart
-        if not hasattr(self, '_sent_history'):
-            self._sent_history = []
-            self._recv_history = []
-        
-        self._sent_history.append(sent)
-        self._recv_history.append(recv)
-        
-        if len(self._sent_history) > 60:
-            self._sent_history = self._sent_history[-60:]
-            self._recv_history = self._recv_history[-60:]
-            
-        self.sent_chart.update_data(self._sent_history)
-        self.recv_chart.update_data(self._recv_history)
-
-    @Slot(list)
-    def on_connections(self, conns):
-        self.conn_label.setText(f"Active Connections: {len(conns)}")
-
-    @Slot(list)
-    def on_listening(self, ports):
-        self.listen_label.setText(f"Listening Ports: {len(ports)}")
-
-    @Slot(dict)
-    def on_speed(self, res):
-        self.dl_card.set_value(str(res.get('download_mbps', '--')))
-        self.ul_card.set_value(str(res.get('upload_mbps', '--')))
-        self.ping_card.set_value(str(res.get('ping_ms', '--')))
+        card.value_label = value_label  # Store reference
+        return card
+    
+    def connect_signals(self):
+        # USE EXACT SIGNAL NAMES from state_manager.py
+        state.bandwidth_updated.connect(self._on_bandwidth)
+        state.connections_updated.connect(self._on_connections)
+        state.listening_updated.connect(self._on_listening)
+        state.privilege_changed.connect(self._on_privilege)
+        state.speed_test_completed.connect(self._on_speed_test)
+    
+    def _format_bytes(self, bps):
+        if bps >= 1_000_000:
+            return f"{bps/1_000_000:.2f} MB/s"
+        elif bps >= 1_000:
+            return f"{bps/1_000:.2f} KB/s"
+        return f"{bps:.0f} B/s"
+    
+    def _on_bandwidth(self, sent: float, recv: float):
+        self.upload_card.value_label.setText(self._format_bytes(sent))
+        self.download_card.value_label.setText(self._format_bytes(recv))
+    
+    def _on_connections(self, data: list):
+        self.connections_card.value_label.setText(str(len(data)))
+    
+    def _on_listening(self, data: list):
+        self.ports_card.value_label.setText(str(len(data)))
+    
+    def _on_privilege(self, is_root: bool):
+        if is_root:
+            self.privilege_label.setText("✓ Running with root privileges - full network visibility")
+        else:
+            self.privilege_label.setText(" Running as regular user - some connections hidden")
+    
+    def _on_speed_test(self, result: dict):
+        # Update speed test display if we add a card later
+        pass

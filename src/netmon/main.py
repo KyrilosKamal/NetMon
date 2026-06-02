@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
-"""Entry point for the NetMon GUI application."""
 import sys
 from PySide6.QtWidgets import QApplication
+from qfluentwidgets import setTheme, Theme
 from netmon.ui.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("NetMon")
-    app.setApplicationVersion("2.0.0")
+    setTheme(Theme.DARK)
+    
     window = MainWindow()
-    window.show()
+    window.show()  # CRITICAL: Must call show()
+    
     sys.exit(app.exec())
 
 if __name__ == "__main__":
