@@ -1,71 +1,245 @@
-# NetMon
+# NetMon - Modern Network Monitor for Arch Linux
 
-A modern, pro-grade network monitor for Arch Linux built with **PySide6** and **Fluent Design**. NetMon provides real-time insights into your system's bandwidth, active connections, listening ports, and internet speed.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python Version">
+  <img src="https://img.shields.io/badge/UI-PySide6-green.svg" alt="PySide6">
+  <img src="https://img.shields.io/badge/Design-Fluent-purple.svg" alt="Fluent Design">
+  <img src="https://img.shields.io/badge/Platform-Arch_Linux-orange.svg" alt="Arch Linux">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+</p>
+
+<p align="center">
+  A modern, fast, and beautiful network monitoring application for Arch Linux.
+  Featuring real-time bandwidth tracking, speed tests, connection monitoring, and data quota management.
+</p>
+
+---
 
 ## Features
 
--   **Modern Fluent UI:** A high-fidelity interface with dark mode, acrylic effects, and smooth animations using `QFluentWidgets`.
--   **Live Dashboard:** Real-time stats cards for instant network health checks, including Data Quota usage.
--   **Bandwidth Monitoring:** Detailed charts showing live upload/download traffic.
--   **Process-Level Connections:** View every active connection with local/remote IPs, PIDs, and associated process names.
--   **Security Audit:** Quickly identify open listening ports and potentially sensitive services.
--   **Speed Test:** Integrated speedtest.net client with circular progress gauges.
--   **Network Details:** Comprehensive view of network interfaces, IP/Subnet info, and default gateway.
--   **Data Quota Tracking:** Monitor monthly data usage with configurable limits and warning thresholds.
--   **Arch Optimized:** Native PKGBUILD and `.desktop` integration for seamless Arch Linux deployment.
+###  Dashboard
+- Real-time download/upload speed monitoring
+- Active connections counter
+- Listening ports counter
+- Data quota overview with progress bar
+- Root privilege detection
 
-## Technologies
+### Speed Test
+- One-click speed testing
+- Download/Upload speed in Mbps
+- Ping measurement
+- ISP detection
 
--   **Language:** Python 3.12+
--   **GUI Framework:** [PySide6](https://doc.qt.io/qtforpython-6/)
--   **UI Design:** [QFluentWidgets](https://github.com/zhiyiYo/PySide6-Fluent-Widgets)
--   **Data Acquisition:** [psutil](https://github.com/giampaolo/psutil)
--   **Networking:** [speedtest-cli](https://github.com/sivel/speedtest-cli)
--   **Plotting:** [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
+### Live Bandwidth Monitor
+- Real-time area chart visualization
+- Sent/Received traffic tracking
+- Auto-scaling graphs
+- 60-second rolling window
+- Color-coded upload/download lines
 
-## Installation & Setup
+### Network Connections
+- Complete connection table
+- Local/Remote addresses
+- Connection status (ESTABLISHED, LISTEN, TIME_WAIT, etc.)
+- Process name and PID
+- Listening ports counter
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/netmon.git
-    cd netmon
-    ```
+### Network Details
+- All network interfaces overview
+- IP address and subnet (CIDR notation)
+- Default gateway detection
+- MAC address
+- Interface status and speed
+- Default interface indicator
 
-2.  **Create and activate a virtual environment:**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+### Data Quota Tracker
+- Monthly quota monitoring
+- Usage percentage visualization
+- Configurable warning thresholds (80%, 90%, 100%)
+- Billing cycle tracking
+- Persistent settings via QSettings
 
-3.  **Install dependencies:**
-    ```bash
-    pip install .
-    ```
+### Settings
+- Configure monthly data quota
+- Warning threshold customization
+- Billing cycle reset
+- Settings persistence across reboots
 
-## Usage
+---
 
-Due to security restrictions in Linux, NetMon requires root privileges to resolve process names for network connections owned by other users.
+##  UI Highlights
 
-### Run NetMon
-After installing in your virtual environment, run:
+- **Modern Fluent Design** powered by PySide6-Fluent-Widgets
+- **Dark theme** by default with smooth animations
+- **Intuitive navigation** with sidebar menu
+- **Real-time updates** without UI freezing (QThread workers)
+- **Responsive layout** that adapts to window size
+- **Signal/Slot architecture** for smooth data flow
+
+---
+
+## 📦 Installation
+
+### Method 1: From AUR (Recommended) ⭐
+
 ```bash
+# Using yay
+yay -S netmon
+
+# Using paru
+paru -S netmon
+```
+This will automatically install all dependencies including **python-pyside6-fluent-widgets**.
+
+### Method 2: From Source
+```bash
+# Clone the repository
+git clone https://github.com/KyrilosKamal/NetMon.git
+cd NetMon
+
+# Create virtual environment (optional but recommended)
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -e .
+
+# Run the application
 python -m netmon
 ```
 
-### Run with Root Privileges (Full Visibility)
-If you need to see processes owned by other users:
+### Method 3: With Root Privileges (for full network visibility)
 ```bash
-sudo ./.venv/bin/python -m netmon
+sudo python -m netmon
 ```
-*(Note: Ensure your virtual environment is created before running this command).*
+## Running with root privileges provides
+- Complete process name resolution
+- All network connections visibility
+- System-wide bandwidth monitoring
 
-## Project Structure
+---
+### Usage
 
--   `src/netmon/core/`: Backend logic, workers, state management, and quota tracking.
--   `src/netmon/ui/`: Fluent Design views, custom widgets (QuotaCard), and settings dialog.
--   `src/netmon/resources/`: Icons and assets.
--   `PKGBUILD`: Arch Linux package build script.
+## Launch the Application
+```bash
+# Normal mode
+netmon
 
-## License
+# With root privileges
+sudo netmon
+```
+---
+## Navigation
+### Use the left sidebar to switch between tabs:
+- Dashboard - Overview of all network stats
+- Speed Test - Test your internet speed
+- Bandwidth - Live bandwidth monitoring
+- Connections - Active network connections
+- Network Details - Interface information
+- Quota - Data usage tracking
+️ - Settings (bottom icon) - Configure quota and warnings
 
-MIT License
+### Setting Up Data Quota
+1. Click the Settings icon (️) at the bottom of the sidebar
+2. Enter your Monthly Quota (GB)
+3. Enable/disable warning thresholds
+4. Click Save Settings
+5. The quota card will appear on the Dashboard
+
+---
+## Architecture
+```bash
+NetMon/
+├── src/netmon/
+│   ├── __main__.py              # Application entry point
+│   ├── core/
+│   │   ├── backend.py           # psutil wrappers & network functions
+│   │   ├── workers.py           # QThread background workers
+│   │   ├── state_manager.py     # Central pub/sub state (Qt Signals)
+│   │   └── quota_manager.py     # Quota tracking with QSettings
+│   └── ui/
+│       ├── main_window.py       # FluentWindow with navigation
+│       ├── dashboard/           # Dashboard view
+│       ├── speedtest/           # Speed test view
+│       ├── bandwidth/           # Bandwidth chart view
+│       ├── connections/         # Connections table view
+│       ├── network_details/     # Network info view
+│       ├── quota/               # Quota tracker view
+│       ├── settings/            # Settings dialog
+│       └── widgets/             # Reusable components
+── pyproject.toml               # PEP 621 package config
+└── README.md
+```
+
+### Design Patterns
+- MVC Architecture: Strict separation of Model (backend), View (UI), and Controller (workers)
+- Pub/Sub Pattern: Central state manager with Qt Signals for decoupled communication
+- Thread Safety: All background operations in QThreads, UI updates via signals
+- Singleton Pattern: State manager and quota manager as application-wide singletons
+---
+## Requirements
+### System Requirements
+- OS: Arch Linux (or Arch-based distro)
+- Python: 3.11 or higher
+- Display: X11 or Wayland
+- Privileges: Root for full network visibility (optional)
+### Dependencies
+
+| Package | Source | Description |
+|----------|----------|-------------|
+| python-pyside6 | Official Repo | Qt6 GUI framework |
+| python-pyside6-fluent-widgets | AUR | Modern Fluent Design UI |
+| python-psutil | Official Repo | System & network monitoring |
+| python-speedtest-cli | Official Repo | Internet speed testing |
+| python-pyqtgraph | Official Repo | Real-time charting |
+| qt6-wayland | Official Repo | Wayland support |
+| hicolor-icon-theme | Official Repo | Icon theme |
+
+---
+## Development
+### Setup Development Environment
+
+```bash
+# Clone and setup
+git clone https://github.com/KyrilosKamal/NetMon.git
+cd NetMon
+python -m venv venv
+source venv/bin/activate
+pip install -e .
+
+# Run the application
+python -m netmon
+```
+### Code Style
+This project follows PEP 8 style guidelines with type hints.
+
+---
+### Contributing
+Contributions are welcome! Please follow these steps:
+1. Fork the repository
+2. Create a feature branch (git checkout -b feature/amazing-feature)
+3. Commit your changes (git commit -m 'Add amazing feature')
+4. Push to the branch (git push origin feature/amazing-feature)
+5. Open a Pull Request
+
+---
+### Bug Reports
+If you encounter any issues, please report them at:
+https://github.com/KyrilosKamal/NetMon/issues
+Include:
+- Your Arch Linux version
+- Python version (python --version)
+- Error messages (if any)
+- Steps to reproduce
+
+---
+### License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+### Acknowledgments
+- **PySide6** - Qt6 Python bindings
+- **PyQt-Fluent-Widgets** - Modern UI components
+- **psutil** - System monitoring
+- **speedtest-cli** - Speed testing
+- **pyqtgraph** - Fast plotting
