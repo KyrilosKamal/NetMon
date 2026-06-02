@@ -57,6 +57,13 @@ sudo ./venv/bin/python -m netmon
 ```
 *(Note: Ensure your virtual environment is created before running this command).*
 
+## 📂 Project Structure
+
+-   `src/netmon/core/`: Backend logic, workers, and state management.
+-   `src/netmon/ui/`: Fluent Design views and custom widgets.
+-   `src/netmon/resources/`: Icons and assets.
+-   `PKGBUILD`: Arch Linux package build script.
+
 ## 📄 License
 
 MIT License
