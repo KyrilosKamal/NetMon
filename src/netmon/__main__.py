@@ -5,6 +5,7 @@ from PySide6.QtGui import QIcon, QGuiApplication
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import setTheme, Theme
 from netmon.ui.main_window import MainWindow
+from netmon.ui.theme_manager import theme_manager
 
 
 def main():
@@ -35,6 +36,9 @@ def main():
     
     # ⭐ مهم: ضبظ Fluent Widgets على Dark Theme
     setTheme(Theme.DARK)
+
+    # Initialize theme manager (enables Windows acrylic effect)
+    theme_manager
     
     # إنشاء وعرض النافذة الرئيسية
     window = MainWindow()

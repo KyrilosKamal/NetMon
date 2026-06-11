@@ -1,31 +1,27 @@
 pkgbase = netmon
-	pkgdesc = Modern PySide6 network monitor: speed test, bandwidth, connections, and open ports for Arch Linux
-	pkgver = 2.0.0
+	pkgdesc = Modern network monitor for Arch Linux with PySide6 GUI
+	pkgver = 0.2.0
 	pkgrel = 1
-	url = https://github.com/YOUR_USERNAME/netmon
-	arch = x86_64
-	arch = aarch64
-	arch = i686
+	url = https://github.com/KyrilosKamal/NetMon
+	arch = any
 	license = MIT
 	makedepends = python-build
 	makedepends = python-installer
 	makedepends = python-setuptools
 	makedepends = python-wheel
-	makedepends = git
-	depends = python>=3.12
+	depends = python>=3.11
+	depends = pyside6
 	depends = python-psutil
-	depends = python-pyside6
 	depends = python-speedtest-cli
 	depends = python-pyqtgraph
-	depends = python-pyside6-fluent-widgets-git
+	depends = python-pyside6-fluent-widgets
 	depends = qt6-wayland
 	depends = hicolor-icon-theme
-	optdepends = sudo: To view all system connections (required for full functionality)
-	provides = netmon
-	conflicts = netmon
-	source = netmon-2.0.0.tar.gz::https://github.com/YOUR_USERNAME/netmon/archive/v2.0.0.tar.gz
+	source = netmon-0.2.0.tar.gz::https://github.com/KyrilosKamal/NetMon/archive/v0.2.0.tar.gz
 	source = netmon.desktop
-	sha256sums = SKIP
-	sha256sums = SKIP
+	source = netmon.sh
+	sha256sums = 922a818cbdd81ab05e20aa90ab62dad7089a301a1db327a146f31a86a4288a10
+	sha256sums = a35550152cf29e3725afdd91174f16d2695412dfb392436b06676f71d928f708
+	sha256sums = fe80d4007ef98553bde7a68b3405ff81aa7279aea083f4d8bfd070824b5a2015
 
 pkgname = netmon

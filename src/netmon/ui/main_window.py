@@ -1,4 +1,6 @@
-from PySide6.QtCore import Qt
+import os
+from PySide6.QtCore import Qt, QCoreApplication
+from PySide6.QtGui import QIcon, QGuiApplication
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentWindow, FluentIcon as FIF, NavigationItemPosition, InfoBar, InfoBarPosition
 from netmon.ui.dashboard.view import DashboardView
@@ -11,9 +13,23 @@ from netmon.ui.settings.dialog import SettingsDialog
 from netmon.core.workers import BandwidthWorker, ConnectionsWorker, NetworkInfoWorker, QuotaWorker
 from netmon.core.state_manager import state
 
+# مهم جداً لـ Wayland/GNOME - يربط التطبيق بالـ Desktop Entry
+QCoreApplication.setApplicationName("netmon-gui")
+QCoreApplication.setOrganizationName("NetMon")
+
+
 class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
+        
+        # مهم جداً: يربط التطبيق بالـ Desktop Entry عشان الأيقونة تظهر في الـ Taskbar
+        QGuiApplication.setDesktopFileName("netmon-gui")
+        QGuiApplication.setApplicationName("netmon-gui")
+        
+        # ⭐ مهم جداً: اضبط اسم الـ window (مهم لـ Wayland/GNOME)
+        self.setObjectName("netmon-gui")
+        
+        # ⚠️ تم نقل تحميل الأيقونة إلى __main__.py لتطبيقها على مستوى التطبيق ومنع اختفائها
         
         self.setWindowTitle("NetMon - Network Monitor")
         self.resize(1200, 800)

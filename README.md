@@ -1,15 +1,15 @@
-# NetMon - Modern Network Monitor for Arch Linux
+# NetMon - Modern Network Monitor (Cross-Platform)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python Version">
   <img src="https://img.shields.io/badge/UI-PySide6-green.svg" alt="PySide6">
   <img src="https://img.shields.io/badge/Design-Fluent-purple.svg" alt="Fluent Design">
-  <img src="https://img.shields.io/badge/Platform-Arch_Linux-orange.svg" alt="Arch Linux">
+  <img src="https://img.shields.io/badge/Platform-Cross_Platform-lightgrey.svg" alt="Cross Platform">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
 </p>
 
 <p align="center">
-  A modern, fast, and beautiful network monitoring application for Arch Linux.
+  A modern, fast, and beautiful cross-platform network monitoring application.
   Featuring real-time bandwidth tracking, speed tests, connection monitoring, and data quota management.
 </p>
 
@@ -76,20 +76,29 @@
 - **Responsive layout** that adapts to window size
 - **Signal/Slot architecture** for smooth data flow
 
+### Windows-Specific Visual Enhancements
+- **Acrylic/Blur Effect**: Native Windows 10/11 acrylic material effect on Windows 11 22H2+ and Windows 10 with updates
+- **Enhanced Glassmorphism**: Improved transparency and blur effects for cards and panels
+- **Modern Fluent Integration**: Seamless integration with Windows Fluent Design System
+- **Dynamic Theme Adaptation**: Automatic adjustment based on Windows system theme settings
+- **Graceful Linux Fallback**: Maintains beautiful appearance on Linux with standard Fluent Design effects
+
 ---
 
 ## 📦 Installation
 
-### Method 1: From AUR (Recommended) ⭐
+### Method 1: From AUR (Arch Linux Only) ⭐
 
 ```bash
 # Using yay
-yay -S netmon
+yay -S netmon-gui
 
 # Using paru
-paru -S netmon
+paru -S netmon-gui
 ```
 This will automatically install all dependencies including **python-pyside6-fluent-widgets**.
+
+> **Note:** This method is only available on Arch Linux and Arch-based distributions. Windows users should use Method 2 or 3.
 
 ### Method 2: From Source
 ```bash
@@ -104,14 +113,17 @@ source venv/bin/activate
 # Install dependencies
 pip install -e .
 
-# Run the application
-python -m netmon
+# Run the application (after installation, the command is 'netmon-gui')
+netmon-gui
 ```
 
 ### Method 3: With Root Privileges (for full network visibility)
 ```bash
-sudo python -m netmon
+sudo netmon-gui
 ```
+
+> **Note:** After installation via any method (AUR, source, or pip), the application is available as the `netmon-gui` command. Running with root privileges (`sudo netmon-gui`) provides complete process name resolution, all network connections visibility, and system-wide bandwidth monitoring.
+
 ## Running with root privileges provides
 - Complete process name resolution
 - All network connections visibility
@@ -123,10 +135,10 @@ sudo python -m netmon
 ## Launch the Application
 ```bash
 # Normal mode
-netmon
+netmon-gui
 
 # With root privileges
-sudo netmon
+sudo netmon-gui
 ```
 ---
 ## Navigation
@@ -179,10 +191,10 @@ NetMon/
 ---
 ## Requirements
 ### System Requirements
-- OS: Arch Linux (or Arch-based distro)
+- OS: Arch Linux (or Arch-based distro) and Windows 10/11
 - Python: 3.11 or higher
 - Display: X11 or Wayland
-- Privileges: Root for full network visibility (optional)
+- Privileges: Root (Linux) or Administrator (Windows) for full network visibility (optional)
 ### Dependencies
 
 | Package | Source | Description |
@@ -207,11 +219,28 @@ python -m venv venv
 source venv/bin/activate
 pip install -e .
 
-# Run the application
-python -m netmon
+# Run the application (after installation, the command is 'netmon-gui')
+netmon-gui
 ```
 ### Code Style
 This project follows PEP 8 style guidelines with type hints.
+
+---
+### Troubleshooting
+If you encounter issues with Claude Code permissions or development tools:
+
+**Permission Fix for PowerShell:**
+If you see an error like: `Invalid permission rule "powershell(node *)" was skipped: Tool names must start with uppercase. Use "Powershell"`
+
+Fix this by editing `.claude/settings.local.json` and changing:
+```json
+"powershell(node *)"
+```
+to:
+```json
+"Powershell(node *)"
+```
+(Note the uppercase "P" in "Powershell")
 
 ---
 ### Contributing
@@ -227,7 +256,7 @@ Contributions are welcome! Please follow these steps:
 If you encounter any issues, please report them at:
 https://github.com/KyrilosKamal/NetMon/issues
 Include:
-- Your Arch Linux version
+- Your OS version (Arch Linux or Windows)
 - Python version (python --version)
 - Error messages (if any)
 - Steps to reproduce

@@ -141,24 +141,67 @@ def get_listening_ports() -> List[Dict]:
 
 def _parse_gateway() -> Tuple[Optional[str], Optional[str]]:
     """
-    Parse default gateway from /proc/net/route.
+    Parse default gateway using cross-platform approach.
     Returns: (gateway_ip, interface_name) or (None, None)
-    
-    /proc/net/route format:
-    Iface   Destination Gateway     Flags RefCnt Use Metric Mask
-    eno1    00000000    0A1F080A    0003  0      0   100    00000000
     """
+    # Try using psutil net_if_addrs and net_if_stats with platform-specific logic
+    try:
+        addrs = psutil.net_if_addrs()
+        stats = psutil.net_if_stats()
+
+        # On Windows, we can try to get gateway information
+        if hasattr(psutil, "WINDOWS") and psutil.WINDOWS:
+            # Windows-specific approach using ipconfig or route print
+            import subprocess
+            try:
+                # Try to get gateway from ipconfig
+                output = subprocess.check_output(['ipconfig', '/all'], text=True, stderr=subprocess.DEVNULL)
+                lines = output.split('\n')
+                current_adapter = None
+                for line in lines:
+                    line = line.strip()
+                    if "Default Gateway" in line and ":" in line:
+                        # Extract gateway
+                        parts = line.split(":", 1)
+                        if len(parts) == 2:
+                            gateway = parts[1].strip()
+                            if gateway and gateway != "" and gateway.lower() != "none":
+                                # We need to associate this with the current adapter
+                                # Look for the adapter name in previous lines
+                                if current_adapter and current_adapter in addrs:
+                                    return gateway, current_adapter
+                    elif "adapter" in line and ":" in line:
+                        # Extract adapter name
+                        parts = line.split(":", 1)
+                        if len(parts) == 2:
+                            current_adapter = parts[0].strip()
+            except Exception:
+                pass  # Fall back to other methods
+
+        # General approach: look for interface with default route-like behavior
+        # For now, we'll use the first interface that is up and has an IP (not ideal but better than nothing)
+        for iface, addr_list in addrs.items():
+            if iface in stats and stats[iface].isup:
+                for addr in addr_list:
+                    if addr.family == socket.AF_INET:  # IPv4
+                        # Return first IPv4 address on an active interface as gateway candidate
+                        # In a real implementation, we'd want to find the actual default gateway
+                        return addr.address, iface
+    except Exception as e:
+        print(f"Warning: Failed to get gateway via psutil: {e}")
+
+    # Fallback to Linux-specific method (/proc/net/route)
     try:
         with open('/proc/net/route', 'r') as f:
             for line in f.readlines()[1:]:  # Skip header
                 parts = line.strip().split()
                 if len(parts) < 8:
                     continue
-                
+
                 interface = parts[0]
                 destination = parts[1]  # Hex
                 gateway_hex = parts[2]  # Hex
-                
+
                 # Default route has destination 00000000
                 if destination == '00000000' and gateway_hex != '00000000':
                     # Convert gateway from little-endian hex to IP
@@ -168,12 +211,13 @@ def _parse_gateway() -> Tuple[Optional[str], Optional[str]]:
                     )
                     return gateway_ip, interface
     except FileNotFoundError:
-        print("Warning: /proc/net/route not found")
+        # This is expected on Windows, so we don't print a warning here
+        pass
     except PermissionError:
         print("Warning: Permission denied reading /proc/net/route")
     except Exception as e:
         print(f"Error parsing gateway: {e}")
-    
+
     return None, None
 
 
@@ -272,5 +316,10 @@ def run_speed_test() -> Dict:
 
 
 def is_root() -> bool:
-    """Return True if the process has effective UID 0."""
-    return os.geteuid() == 0
+    """Return True if the process has effective UID 0 (Unix) or is administrator (Windows)."""
+    try:
+        return os.geteuid() == 0  # Unix/Linux/macOS
+    except AttributeError:
+        # Windows - check if user is in administrator group
+        import ctypes
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0

@@ -123,3 +123,4 @@ src/netmon.egg-info/
 *.tar.zst
 *.pkg.tar.zst
 netmon-*.pkg.tar.zst
+.aider*

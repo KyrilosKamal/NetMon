@@ -1,14 +1,14 @@
-# Maintainer: Your Name <you@example.com>
-pkgname=netmon
+# Maintainer: Kyrillos Kamal <kyrillos@example.com>
+pkgname=netmon-gui
 pkgver=2.0.0
 pkgrel=1
-pkgdesc="Modern PySide6 network monitor: speed test, bandwidth, connections, and open ports for Arch Linux"
-arch=('x86_64' 'aarch64' 'i686')
-url="https://github.com/YOUR_USERNAME/netmon"
+pkgdesc="Modern network monitor for Arch Linux with PySide6 GUI"
+arch=('any')
+url="https://github.com/KyrilosKamal/NetMon"
 license=('MIT')
 depends=(
-    'python'
-    'python-pyside6'
+    'python>=3.11'
+    'pyside6'
     'python-psutil'
     'python-speedtest-cli'
     'python-pyqtgraph'
@@ -21,32 +21,33 @@ makedepends=(
     'python-installer'
     'python-setuptools'
     'python-wheel'
-    'git'
 )
-optdepends=(
-    'sudo: To view all system connections (required for full functionality)'
+source=(
+    "$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
+    "netmon-gui.desktop"
+    "netmon-gui.sh"
 )
-provides=(${pkgname})
-conflicts=(${pkgname})
-source=("netmon-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
-        "netmon.desktop")
-sha256sums=('SKIP'
-            'SKIP')
+sha256sums=('922a818cbdd81ab05e20aa90ab62dad7089a301a1db327a146f31a86a4288a10'
+            '41b16eeb54510cbaaa0397399cdc607558b9092064122ecedb0bbf9cc9d13709'
+            'fe80d4007ef98553bde7a68b3405ff81aa7279aea083f4d8bfd070824b5a2015')
 
 build() {
     cd "$srcdir/$pkgname-$pkgver"
-    python -m build --wheel --no-isolation --outdir="$srcdir/dist"
+    python -m build --wheel --no-isolation
 }
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
-    python -m installer --destdir="$pkgdir" --compile-bytecode=1 "$srcdir/dist"/*.whl
-
-    install -Dm644 "netmon.desktop" "$pkgdir/usr/share/applications/netmon.desktop"
+    python -m installer --destdir="$pkgdir" dist/*.whl
     
-    install -Dm644 "src/netmon/resources/netmon.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/netmon.svg"
+    install -Dm644 "$srcdir/netmon-gui.desktop" \
+        "$pkgdir/usr/share/applications/netmon-gui.desktop"
 
-    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-
-    find "$pkgdir" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    install -Dm755 "$srcdir/netmon-gui.sh" \
+        "$pkgdir/usr/bin/netmon-gui"
+    
+    if [ -f LICENSE ]; then
+        install -Dm644 LICENSE \
+            "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    fi
 }
